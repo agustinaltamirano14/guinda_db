@@ -1,6 +1,8 @@
+CREATE DATABASE  IF NOT EXISTS `guinda` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+USE `guinda`;
 -- MySQL dump 10.13  Distrib 8.0.46, for Win64 (x86_64)
 --
--- Host: localhost    Database: guinda_db
+-- Host: localhost    Database: guinda
 -- ------------------------------------------------------
 -- Server version	26.7.0
 
@@ -21,7 +23,55 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 -- GTID state at the beginning of the backup 
 --
 
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ 'cf07596b-a293-11f1-aec1-9c6b007af5a7:1-22';
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '7f17b81b-a262-11f1-9f76-902e1632827c:1-16,
+cf07596b-a293-11f1-aec1-9c6b007af5a7:1-22';
+
+--
+-- Table structure for table `apertura_cierre_cajas`
+--
+
+DROP TABLE IF EXISTS `apertura_cierre_cajas`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `apertura_cierre_cajas` (
+  `id_apertura_cierre` int NOT NULL AUTO_INCREMENT,
+  `id_cajas_fk_apertura_cierre` int NOT NULL,
+  `id_usuarios_fk_apertura_cierre` int NOT NULL,
+  `fecha_apertura_caja` date NOT NULL,
+  `fecha_cierre_caja` date DEFAULT NULL,
+  `monto_inicial` decimal(14,2) NOT NULL,
+  `monto_final_real` decimal(14,2) DEFAULT NULL,
+  `monto_final_teorico` decimal(14,2) DEFAULT NULL,
+  `diferencia` decimal(14,2) DEFAULT NULL,
+  `observaciones` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`id_apertura_cierre`),
+  KEY `id_cajas_fk_apertura_cierre_idx` (`id_cajas_fk_apertura_cierre`),
+  KEY `id_usuarios_fk_apertura_cierre_idx` (`id_usuarios_fk_apertura_cierre`),
+  CONSTRAINT `id_cajas_fk_apertura_cierre` FOREIGN KEY (`id_cajas_fk_apertura_cierre`) REFERENCES `cajas` (`id_cajas`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `id_usuarios_fk_apertura_cierre` FOREIGN KEY (`id_usuarios_fk_apertura_cierre`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `auditorias`
+--
+
+DROP TABLE IF EXISTS `auditorias`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `auditorias` (
+  `id_auditorias` int NOT NULL AUTO_INCREMENT,
+  `id_usuarios_auditorias` int NOT NULL,
+  `accion` enum('INSERT','DELETE','UPDATE','LOGIN','LOGOUT') NOT NULL,
+  `tabla_afectada` varchar(50) NOT NULL,
+  `id_registro_afectado` int DEFAULT NULL,
+  `datos_previos` text,
+  `datos_nuevos` text,
+  PRIMARY KEY (`id_auditorias`),
+  KEY `id_usuarios_auditorias_idx` (`id_usuarios_auditorias`),
+  CONSTRAINT `id_usuarios_auditorias` FOREIGN KEY (`id_usuarios_auditorias`) REFERENCES `usuarios` (`id_usuarios`) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `cajas`
@@ -54,6 +104,30 @@ CREATE TABLE `categorias_producto` (
   `estado_cat` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id_cat`),
   UNIQUE KEY `nombre_cat` (`nombre_cat`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `clientes`
+--
+
+DROP TABLE IF EXISTS `clientes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `clientes` (
+  `id_clientes` int NOT NULL AUTO_INCREMENT,
+  `id_usuarios_clientes` int DEFAULT NULL,
+  `nombre` varchar(60) NOT NULL,
+  `apellido` varchar(60) NOT NULL,
+  `dni_cuit` int NOT NULL,
+  `telefono` varchar(20) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `fecha_alta` varchar(45) NOT NULL,
+  `estado` tinyint NOT NULL,
+  PRIMARY KEY (`id_clientes`),
+  UNIQUE KEY `dni_cuit_UNIQUE` (`dni_cuit`),
+  UNIQUE KEY `id_usuarios_UNIQUE` (`id_usuarios_clientes`),
+  CONSTRAINT `id_usuarios_clientes` FOREIGN KEY (`id_usuarios_clientes`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -216,6 +290,27 @@ CREATE TABLE `usuarios` (
   UNIQUE KEY `email_UNIQUE` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `usuariosxroles`
+--
+
+DROP TABLE IF EXISTS `usuariosxroles`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `usuariosxroles` (
+  `id_usuariosxroles` int NOT NULL AUTO_INCREMENT,
+  `id_usuarios` int NOT NULL,
+  `id_rol` int NOT NULL,
+  `fecha_asignacion` date DEFAULT NULL,
+  `estado` tinyint NOT NULL,
+  PRIMARY KEY (`id_usuariosxroles`),
+  KEY `id_usuario_idx` (`id_usuarios`),
+  KEY `id_rol_idx` (`id_rol`),
+  CONSTRAINT `id_rol` FOREIGN KEY (`id_rol`) REFERENCES `roles` (`id_rol`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `id_usuario` FOREIGN KEY (`id_usuarios`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -227,4 +322,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-28  2:25:06
+-- Dump completed on 2026-08-28 21:00:50
