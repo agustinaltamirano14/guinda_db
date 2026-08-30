@@ -23,7 +23,7 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 -- GTID state at the beginning of the backup 
 --
 
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ 'cf07596b-a293-11f1-aec1-9c6b007af5a7:1-50';
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ 'cf07596b-a293-11f1-aec1-9c6b007af5a7:1-76';
 
 --
 -- Table structure for table `apertura_cierre_cajas`
@@ -36,8 +36,8 @@ CREATE TABLE `apertura_cierre_cajas` (
   `id_apertura_cierre` int NOT NULL AUTO_INCREMENT,
   `id_cajas_fk_apertura_cierre` int NOT NULL,
   `id_usuarios_fk_apertura_cierre` int NOT NULL,
-  `fecha_apertura_caja` date NOT NULL,
-  `fecha_cierre_caja` date DEFAULT NULL,
+  `fecha_apertura_caja` datetime NOT NULL,
+  `fecha_cierre_caja` datetime DEFAULT NULL,
   `monto_inicial` decimal(14,2) NOT NULL,
   `monto_final_real` decimal(14,2) DEFAULT NULL,
   `monto_final_teorico` decimal(14,2) DEFAULT NULL,
@@ -47,7 +47,8 @@ CREATE TABLE `apertura_cierre_cajas` (
   KEY `id_cajas_fk_apertura_cierre_idx` (`id_cajas_fk_apertura_cierre`),
   KEY `id_usuarios_fk_apertura_cierre_idx` (`id_usuarios_fk_apertura_cierre`),
   CONSTRAINT `id_cajas_fk_apertura_cierre` FOREIGN KEY (`id_cajas_fk_apertura_cierre`) REFERENCES `cajas` (`id_cajas`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `id_usuarios_fk_apertura_cierre` FOREIGN KEY (`id_usuarios_fk_apertura_cierre`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT `id_usuarios_fk_apertura_cierre` FOREIGN KEY (`id_usuarios_fk_apertura_cierre`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `ck_apertura_monto_inicial` CHECK ((`monto_inicial` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -70,6 +71,7 @@ DROP TABLE IF EXISTS `auditorias`;
 CREATE TABLE `auditorias` (
   `id_auditorias` int NOT NULL AUTO_INCREMENT,
   `id_usuarios_auditorias` int NOT NULL,
+  `fecha_hora` datetime NOT NULL,
   `accion` enum('INSERT','DELETE','UPDATE','LOGIN','LOGOUT') NOT NULL,
   `tabla_afectada` varchar(50) NOT NULL,
   `id_registro_afectado` int DEFAULT NULL,
@@ -154,11 +156,12 @@ CREATE TABLE `clientes` (
   `id_usuarios_clientes` int DEFAULT NULL,
   `nombre` varchar(60) NOT NULL,
   `apellido` varchar(60) NOT NULL,
-  `dni_cuit` int NOT NULL,
+  `dni_cuit` varchar(13) DEFAULT NULL,
   `telefono` varchar(20) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
-  `fecha_alta` varchar(45) NOT NULL,
-  `estado` tinyint NOT NULL,
+  `direccion` varchar(200) DEFAULT NULL,
+  `fecha_alta` date NOT NULL,
+  `estado` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id_clientes`),
   UNIQUE KEY `dni_cuit_UNIQUE` (`dni_cuit`),
   UNIQUE KEY `id_usuarios_UNIQUE` (`id_usuarios_clientes`),
@@ -190,12 +193,13 @@ CREATE TABLE `compras` (
   `numero_factura` varchar(30) DEFAULT NULL,
   `total` decimal(14,2) NOT NULL,
   `estado` enum('recibida','pendiente','anulada') NOT NULL,
-  `observaciones` varchar(255) DEFAULT NULL,
+  `observaciones` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`id_compras`),
   KEY `id_prov_idx` (`id_prov`),
   KEY `fk_compras_usuarios` (`id_usuarios`),
   CONSTRAINT `fk_compras_usuarios` FOREIGN KEY (`id_usuarios`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `id_prov` FOREIGN KEY (`id_prov`) REFERENCES `proveedores` (`id_prov`)
+  CONSTRAINT `id_prov` FOREIGN KEY (`id_prov`) REFERENCES `proveedores` (`id_prov`),
+  CONSTRAINT `ck_compras_total` CHECK ((`total` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -507,19 +511,24 @@ DROP TABLE IF EXISTS `productos`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `productos` (
   `idproductos` int NOT NULL AUTO_INCREMENT,
+  `codigo_barras` varchar(50) DEFAULT NULL,
   `id_cat` int NOT NULL,
   `id_marca` int NOT NULL,
-  `nombre` varchar(50) NOT NULL,
-  `descripcion` varchar(255) DEFAULT NULL,
+  `nombre` varchar(120) NOT NULL,
+  `descripcion` varchar(500) DEFAULT NULL,
+  `presentacion` varchar(60) DEFAULT NULL,
   `precio_venta` decimal(12,2) NOT NULL,
   `precio_costo` decimal(12,2) NOT NULL,
   `fecha_alta` date NOT NULL,
-  `estado_prod` tinyint DEFAULT NULL,
+  `estado_prod` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`idproductos`),
+  UNIQUE KEY `uq_productos_codigo_barras` (`codigo_barras`),
   KEY `id_cat_idx` (`id_cat`),
   KEY `id_marca_idx` (`id_marca`),
   CONSTRAINT `id_cat` FOREIGN KEY (`id_cat`) REFERENCES `categorias_producto` (`id_cat`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `id_marca` FOREIGN KEY (`id_marca`) REFERENCES `marcas_producto` (`id_marca`) ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT `id_marca` FOREIGN KEY (`id_marca`) REFERENCES `marcas_producto` (`id_marca`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `ck_productos_precio_costo` CHECK ((`precio_costo` >= 0)),
+  CONSTRAINT `ck_productos_precio_venta` CHECK ((`precio_venta` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -544,10 +553,13 @@ CREATE TABLE `promociones` (
   `nombre_prom` varchar(80) NOT NULL,
   `descripcion_prom` varchar(255) DEFAULT NULL,
   `tipo_descuento` enum('porcentaje','monto_fijo') NOT NULL,
+  `valor_descuento` decimal(10,2) NOT NULL,
   `fecha_inicio_prom` date NOT NULL,
   `fecha_FIN_prom` date NOT NULL,
-  `estado_marca` tinyint(1) NOT NULL DEFAULT '1',
-  PRIMARY KEY (`id_prom`)
+  `estado_prom` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id_prom`),
+  CONSTRAINT `ck_prom_fechas` CHECK ((`fecha_FIN_prom` >= `fecha_inicio_prom`)),
+  CONSTRAINT `ck_prom_valor` CHECK ((`valor_descuento` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -603,7 +615,7 @@ CREATE TABLE `proveedores` (
   `email_prov` varchar(100) DEFAULT NULL,
   `direccion_prov` varchar(200) DEFAULT NULL,
   `observaciones_prov` varchar(500) DEFAULT NULL,
-  `estado_marca` tinyint(1) NOT NULL DEFAULT '1',
+  `estado_prov` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id_prov`),
   UNIQUE KEY `cuit_prov` (`cuit_prov`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -816,4 +828,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 21:42:31
+-- Dump completed on 2026-08-30 21:55:42
