@@ -23,8 +23,7 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 -- GTID state at the beginning of the backup 
 --
 
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '7f17b81b-a262-11f1-9f76-902e1632827c:1-16,
-cf07596b-a293-11f1-aec1-9c6b007af5a7:1-22';
+
 
 --
 -- Table structure for table `apertura_cierre_cajas`
@@ -322,4 +321,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 18:25:39
+-- Dump completed on 2026-08-28 21:00:50
