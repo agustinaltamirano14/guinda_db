@@ -23,7 +23,7 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 -- GTID state at the beginning of the backup 
 --
 
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ 'cf07596b-a293-11f1-aec1-9c6b007af5a7:1-76';
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ 'cf07596b-a293-11f1-aec1-9c6b007af5a7:1-90';
 
 --
 -- Table structure for table `apertura_cierre_cajas`
@@ -46,8 +46,8 @@ CREATE TABLE `apertura_cierre_cajas` (
   PRIMARY KEY (`id_apertura_cierre`),
   KEY `id_cajas_fk_apertura_cierre_idx` (`id_cajas_fk_apertura_cierre`),
   KEY `id_usuarios_fk_apertura_cierre_idx` (`id_usuarios_fk_apertura_cierre`),
-  CONSTRAINT `id_cajas_fk_apertura_cierre` FOREIGN KEY (`id_cajas_fk_apertura_cierre`) REFERENCES `cajas` (`id_cajas`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `id_usuarios_fk_apertura_cierre` FOREIGN KEY (`id_usuarios_fk_apertura_cierre`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_apertura_cierre_cajas` FOREIGN KEY (`id_cajas_fk_apertura_cierre`) REFERENCES `cajas` (`id_cajas`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_apertura_cierre_usuarios` FOREIGN KEY (`id_usuarios_fk_apertura_cierre`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `ck_apertura_monto_inicial` CHECK ((`monto_inicial` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -79,7 +79,7 @@ CREATE TABLE `auditorias` (
   `datos_nuevos` text,
   PRIMARY KEY (`id_auditorias`),
   KEY `id_usuarios_auditorias_idx` (`id_usuarios_auditorias`),
-  CONSTRAINT `id_usuarios_auditorias` FOREIGN KEY (`id_usuarios_auditorias`) REFERENCES `usuarios` (`id_usuarios`) ON UPDATE CASCADE
+  CONSTRAINT `fk_auditorias_usuarios` FOREIGN KEY (`id_usuarios_auditorias`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -165,7 +165,7 @@ CREATE TABLE `clientes` (
   PRIMARY KEY (`id_clientes`),
   UNIQUE KEY `dni_cuit_UNIQUE` (`dni_cuit`),
   UNIQUE KEY `id_usuarios_UNIQUE` (`id_usuarios_clientes`),
-  CONSTRAINT `id_usuarios_clientes` FOREIGN KEY (`id_usuarios_clientes`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT `fk_clientes_usuarios` FOREIGN KEY (`id_usuarios_clientes`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -197,8 +197,8 @@ CREATE TABLE `compras` (
   PRIMARY KEY (`id_compras`),
   KEY `id_prov_idx` (`id_prov`),
   KEY `fk_compras_usuarios` (`id_usuarios`),
+  CONSTRAINT `fk_compras_proveedores` FOREIGN KEY (`id_prov`) REFERENCES `proveedores` (`id_prov`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_compras_usuarios` FOREIGN KEY (`id_usuarios`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `id_prov` FOREIGN KEY (`id_prov`) REFERENCES `proveedores` (`id_prov`),
   CONSTRAINT `ck_compras_total` CHECK ((`total` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -480,7 +480,7 @@ DROP TABLE IF EXISTS `pedidos`;
 CREATE TABLE `pedidos` (
   `id_pedidos` int NOT NULL AUTO_INCREMENT,
   `id_clientes_pedidos` int NOT NULL,
-  `id_usuarios_pedidos` int NOT NULL,
+  `id_usuarios_pedidos` int DEFAULT NULL,
   `fecha` datetime NOT NULL,
   `canal` enum('WhatsApp','Instagram','presencial','MercadoLibre','web','otro') NOT NULL,
   `estado` enum('pendiente','reservado','en_espera_stock','listo','entregado','cancelado') NOT NULL DEFAULT 'pendiente',
@@ -525,8 +525,8 @@ CREATE TABLE `productos` (
   UNIQUE KEY `uq_productos_codigo_barras` (`codigo_barras`),
   KEY `id_cat_idx` (`id_cat`),
   KEY `id_marca_idx` (`id_marca`),
-  CONSTRAINT `id_cat` FOREIGN KEY (`id_cat`) REFERENCES `categorias_producto` (`id_cat`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `id_marca` FOREIGN KEY (`id_marca`) REFERENCES `marcas_producto` (`id_marca`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_productos_categorias` FOREIGN KEY (`id_cat`) REFERENCES `categorias_producto` (`id_cat`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_productos_marcas` FOREIGN KEY (`id_marca`) REFERENCES `marcas_producto` (`id_marca`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `ck_productos_precio_costo` CHECK ((`precio_costo` >= 0)),
   CONSTRAINT `ck_productos_precio_venta` CHECK ((`precio_venta` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -672,7 +672,7 @@ DROP TABLE IF EXISTS `roles`;
 CREATE TABLE `roles` (
   `id_rol` int NOT NULL AUTO_INCREMENT,
   `nombre_rol` varchar(50) NOT NULL,
-  `descripcion__rol` varchar(255) DEFAULT NULL,
+  `descripcion_rol` varchar(255) DEFAULT NULL,
   `permisos` text NOT NULL,
   PRIMARY KEY (`id_rol`),
   UNIQUE KEY `nombre_rol` (`nombre_rol`)
@@ -766,8 +766,8 @@ CREATE TABLE `usuariosxroles` (
   UNIQUE KEY `uq_usuario_rol` (`id_usuarios`,`id_rol`),
   KEY `id_usuario_idx` (`id_usuarios`),
   KEY `id_rol_idx` (`id_rol`),
-  CONSTRAINT `id_rol` FOREIGN KEY (`id_rol`) REFERENCES `roles` (`id_rol`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `id_usuario` FOREIGN KEY (`id_usuarios`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT `fk_usuariosxroles_roles` FOREIGN KEY (`id_rol`) REFERENCES `roles` (`id_rol`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_usuariosxroles_usuarios` FOREIGN KEY (`id_usuarios`) REFERENCES `usuarios` (`id_usuarios`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -828,4 +828,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 21:55:42
+-- Dump completed on 2026-08-30 22:13:08
